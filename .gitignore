@@ -1,0 +1,5 @@
+.env
+__pycache__/
+*.pyc
+nitc_seen.txt.bak
+

@@ -1,0 +1,37 @@
+name: NITC recruitment watch
+
+on:
+  schedule:
+    - cron: "30 11 * * *"         # 5:00 PM IST daily (UTC); best-effort timing
+  workflow_dispatch:              # run manually from the Actions tab
+    inputs:
+      test_mode:
+        description: "Send a test email instead of checking the page"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write                 # needed to push the updated state file
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Run watcher
+        run: python3 watch.py
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          SENDER:         ${{ secrets.SENDER }}
+          RECEIVER:       ${{ secrets.RECEIVER }}
+          TEST_MODE:      ${{ inputs.test_mode == true && '1' || '0' }}
+
+      - name: Commit state if changed
+        if: ${{ inputs.test_mode != true }}
+        run: |
+          git config user.name  "github-actions"
+          git config user.email "actions@github.com"
+          git add nitc_seen.txt
+          git diff --staged --quiet || git commit -m "state: $(date -u +%FT%TZ)"
+          git push
